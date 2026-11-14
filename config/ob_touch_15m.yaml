@@ -1,0 +1,33 @@
+# Pure 15m order-block touch/near-touch strategy with an ATR trailing stop.
+# The rules behind `make ob-touch-backtest`.
+#
+# STATUS (2026-11-04 research): NO EDGE FOUND. Disabled; documented negative result.
+# Zones are the user's TradingView script exactly (src/strategy/luxalgo_internal_ob.py
+# pine_internal_blocks: close-based mitigation, only the newest 5 drawn blocks tradable) and
+# were checked against a live chart: all 5 drawn zones matched within ~$30 (Delta vs Binance).
+# Entries are only allowed from the bar AFTER a block forms (an earlier version let the
+# confirming bar fill orders before the block existed, which produced a fake 70% win rate).
+# Result, Jan-Oct 2026: 682 trades, 48% wins, -60% return, 0/9 months >= 60%, 0 of 63 grid
+# settings profitable in both halves, and the directional null test (no stop/trail) is ~50%
+# at 1h/4h/24h for every near-touch buffer. See data/reports/ob_touch_15m_research.csv.
+
+strategy:
+  symbol: BTCUSD
+
+  entry:
+    entry_minutes: 15        # order blocks are built directly on 15m candles
+    near_mode: pct           # touch (buffer=0) | atr | pct
+    near_atr_mult: 0.25      # used only when near_mode: atr
+    near_pct: 0.0025         # "near" = within 0.25% of the block's near edge
+    first_touch_only: true   # only a block's first touch/near-touch is tradable
+
+  trail:
+    stop_buffer_atr: 0.25    # initial stop: 0.25x ATR(15m) beyond the block's far side
+    trail_activate_r: 1.0    # start trailing once the trade is ahead by 1R
+    trail_atr_mult: 1.0      # once trailing, stop sits 1x ATR(15m) behind the best price seen
+    max_hours: 96            # time stop if neither the initial nor trailing stop is hit
+    min_stop_pct: 0.002      # skip trades whose stop is tighter than this; fees would dominate
+
+data:
+  minute_parquet: data/parquet/BTCUSD_1m_20260101_20261026.parquet
+  train_test_split: "2026-06-01"   # train before this date, test on/after (June data is missing)

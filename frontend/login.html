@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0e13">
+<title>Sign in · Delta Desk</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0e13;--panel:#11151c;--line:#222833;--muted:#858d9c;--text:#eef1f6;--red:#ff7283;--violet:#9c83ff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--text);font:14px 'DM Sans',system-ui,sans-serif;padding:16px}
+form{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px 24px}
+h1{font-size:18px;margin:0 0 4px;letter-spacing:-.4px}
+p{margin:0 0 6px;color:var(--muted);font-size:12px}
+label{display:block;font-size:11px;color:var(--muted);margin:14px 0 6px}
+input{width:100%;padding:10px 11px;background:#0b0e13;border:1px solid var(--line);border-radius:6px;color:var(--text);font-size:14px}
+input:focus{outline:2px solid #4b3f86;border-color:var(--violet)}
+button{width:100%;margin-top:20px;padding:11px;border:0;border-radius:6px;background:var(--violet);color:#0b0e13;font-weight:700;font-size:14px;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+#error{margin-top:14px;color:var(--red);font-size:12px;min-height:1em}
+</style>
+<script src="/runtime-config.js"></script>
+<script src="/runtime.js"></script>
+</head>
+<body>
+<form id="login" novalidate>
+  <h1>Delta Desk</h1>
+  <p>Paper trading terminal. Sign in with your email and password.</p>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="username" required autofocus>
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" required>
+  <button id="submit" type="submit">Sign in</button>
+  <div id="error" role="alert"></div>
+</form>
+<script type="module" src="/login.js"></script>
+</body>
+</html>

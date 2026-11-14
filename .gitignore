@@ -1,0 +1,21 @@
+data/
+.env
+logs/
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+secrets/
+config/firebase_web.json
+dist-hosted/
+firebase-debug.log
+
+# Large regenerable research artefacts and local caches
+.firebase/
+*.parquet
+*.npy
+*.pkl
+research/smart_zone/same_tf/results/stage*_metrics.csv
+.DS_Store

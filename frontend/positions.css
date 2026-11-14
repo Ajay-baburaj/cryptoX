@@ -1,0 +1,45 @@
+.profit{color:var(--green)}
+.loss{color:var(--red)}
+.flat{color:var(--muted)}
+
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;padding:14px}
+.pos-grid>.strategy-note{grid-column:1/-1;padding:4px 2px;margin:0}
+.pos-card{padding:16px;border:1px solid #2a313c;border-left-width:3px;border-radius:9px;background:#11151c;min-width:0}
+.pos-card.profit{color:inherit;border-left-color:var(--green);background:linear-gradient(90deg,rgba(71,215,160,.08),#11151c 45%)}
+.pos-card.loss{color:inherit;border-left-color:var(--red);background:linear-gradient(90deg,rgba(255,114,131,.08),#11151c 45%)}
+.pos-card.flat{color:inherit}
+
+.pos-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pos-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.pos-title b{color:var(--text);font:500 13px 'DM Mono',monospace}
+.pos-strategy{color:var(--muted);font-size:11px}
+.side-pill{display:inline-block;padding:3px 8px;border-radius:4px;font:600 10px 'DM Mono',monospace;letter-spacing:.05em}
+.side-pill.long{color:var(--green);background:rgba(71,215,160,.14)}
+.side-pill.short{color:var(--red);background:rgba(255,114,131,.14)}
+
+.pos-pnl{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:14px 0}
+.pos-pnl-value{font:500 22px 'DM Mono',monospace}
+.pos-pnl-pct{font:500 13px 'DM Mono',monospace}
+.pos-card.profit .pos-pnl-value,.pos-card.profit .pos-pnl-pct{color:var(--green)}
+.pos-card.loss .pos-pnl-value,.pos-card.loss .pos-pnl-pct{color:var(--red)}
+.pos-card.flat .pos-pnl-value,.pos-card.flat .pos-pnl-pct{color:var(--text)}
+.pos-pnl small{color:var(--muted);font-size:11px}
+
+.pos-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0}
+.pos-fields dt{color:var(--muted);font-size:10px;margin-bottom:3px}
+.pos-fields dd{margin:0;color:#d8dce4;font:12px 'DM Mono',monospace;overflow-wrap:anywhere}
+.pos-fields dd.profit{color:var(--green)}
+.pos-fields dd.loss{color:var(--red)}
+
+.pos-card .manual-actions{margin-top:14px}
+.pos-card .manual-form{margin:14px 0 0}
+.manual-form .manual-actions .manual-buy{color:#07150f;background:var(--green);border-color:var(--green);font-weight:600}
+.manual-form .manual-actions .manual-sell{color:#1d070b;background:var(--red);border-color:var(--red);font-weight:600}
+
+.orders-block{padding:0 14px 14px}
+.orders-block h3{font-size:13px;margin:6px 0 10px;color:var(--text)}
+#manual-orders td{white-space:nowrap;padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px}
+#manual-orders td.profit,#all-trades td.profit{color:var(--green)}
+#manual-orders td.loss,#all-trades td.loss{color:var(--red)}
+
+@media(max-width:600px){.pos-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}

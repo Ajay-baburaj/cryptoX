@@ -1,0 +1,34 @@
+rows 53280 n trades-keys 8880 variants 4440
+{
+ "5": null,
+ "15": null,
+ "30": {
+  "tf": 30,
+  "preset": "Strict",
+  "zone": "res",
+  "stars": "3",
+  "exit": "time30",
+  "buffer": 0.25,
+  "trades_dev": 53,
+  "trades_val": 42,
+  "avgR_dev": 0.18432693484721102,
+  "avgR_val": 0.48777573177184985
+ },
+ "60": null,
+ "240": {
+  "tf": 240,
+  "preset": "Strict",
+  "zone": "flip",
+  "stars": "all",
+  "exit": "time30",
+  "buffer": 0.1,
+  "trades_dev": 38,
+  "trades_val": 50,
+  "avgR_dev": 0.49546564598563664,
+  "avgR_val": 0.3245746679766747
+ },
+ "n_passing_per_tf": {
+  "30": 2,
+  "240": 6
+ }
+}

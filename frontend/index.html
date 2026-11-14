@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0e13" />
+    <title>Delta Desk · Crypto Bot</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/chart.css" />
+    <link rel="stylesheet" href="/ob1h.css" />
+    <link rel="stylesheet" href="/strategies.css" />
+    <link rel="stylesheet" href="/manual.css" />
+    <link rel="stylesheet" href="/positions.css" />
+  <script src="/runtime-config.js"></script>
+<script src="/runtime.js"></script>
+</head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#overview" aria-label="Delta Desk home"><span class="brand-mark">D</span><span>delta<span class="brand-muted">desk</span><small>BOT TERMINAL</small></span></a>
+        <div class="nav-label">WORKSPACE</div>
+        <nav>
+          <a class="nav-item active" href="#overview"><span class="nav-icon">▦</span>Overview</a>
+          <a class="nav-item" href="#markets"><span class="nav-icon">⌁</span>Markets</a>
+          <a class="nav-item" href="#manual-trading"><span class="nav-icon">＋</span>Manual trading</a>
+          <a class="nav-item" href="#trades"><span class="nav-icon">⇄</span>Trade history</a>
+          <a class="nav-item" href="#strategies"><span class="nav-icon">⌘</span>Strategies</a>
+        </nav>
+        <div class="side-actions">
+          <button type="button" class="side-btn" id="push-toggle" hidden><span class="ico">🔔</span><span class="lbl">Enable notifications</span></button>
+          <button type="button" class="side-btn" id="push-test" hidden><span class="ico">✉</span><span class="lbl">Send test notification</span></button>
+          <form method="post" action="/logout"><button type="submit" class="side-btn"><span class="ico">⏻</span><span class="lbl">Sign out</span></button></form>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar"><div class="crumb">Workspace <span>/</span> <b>Overview</b></div></header>
+        <div class="content">
+          <section class="page-heading"><div><div class="eyebrow">PAPER TRADING <span class="timezone">ALL TIMES IST · UTC+5:30</span></div><h1>Overview</h1></div><div class="heading-actions"><span class="live-tag" id="paper-status-chip"><i></i>LOADING</span><button class="button button-muted" id="refresh">↻ <span>Refresh</span></button></div></section>
+          <section class="stats-grid" aria-label="Portfolio summary">
+            <article class="stat-card"><div class="stat-top"><span>1H OB paper equity</span><span class="stat-icon violet">◈</span></div><strong id="stat-balance">—</strong><div class="stat-foot"><span class="neutral-tag">USDT · INDEPENDENT</span><span id="stat-start">—</span></div></article>
+            <article class="stat-card"><div class="stat-top"><span>Manual paper equity</span><span class="stat-icon green">↗</span></div><strong id="stat-pnl">—</strong><div class="stat-foot"><span id="stat-pnl-pct">—</span><span>USDT · independent account</span></div></article>
+            <article class="stat-card"><div class="stat-top"><span>Win rate</span><span class="stat-icon blue">◉</span></div><strong id="stat-winrate">—</strong><div class="stat-foot"><span id="stat-wins">—</span><span class="separator">·</span><span id="stat-losses">—</span></div></article>
+            <article class="stat-card"><div class="stat-top"><span>Active positions</span><span class="stat-icon orange">⌁</span></div><strong id="stat-positions">— <small class="of-limit">/ 2 max</small></strong><div class="stat-foot"><span id="stat-positions-detail">—</span></div></article>
+          </section>
+          <div id="view-overview">
+          <section class="panel chart-panel" id="markets">
+            <div class="panel-heading"><div><div class="panel-title-line"><h2>BTCUSDT price</h2><span class="live-tag" id="chart-tag"><i></i>CONNECTING</span></div><p>Candlestick chart <span class="dot-sep">·</span> Binance Spot · USDT <span class="dot-sep">·</span> <span id="chart-resolution">15m candles</span></p></div><div class="chart-tools"><div class="range-tabs" role="tablist" aria-label="Timeframe"><button data-range="5m">5m</button><button data-range="15m" class="selected">15m</button><button data-range="1h">1H</button><button data-range="4h">4H</button></div><button class="button button-muted" id="chart-fullscreen" aria-label="Enter chart fullscreen" aria-pressed="false" title="Fullscreen chart">⛶ <span>Fullscreen</span></button></div></div>
+            <div class="indicator-toolbar">
+              <label class="indicator-toggle"><input type="checkbox" id="smc-enabled" checked> <span>Smart Money Concepts <small>LuxAlgo</small></span></label>
+              <span id="smc-status" role="status">Waiting for candles…</span>
+              <button class="button button-muted" id="smc-settings-toggle" aria-expanded="false" aria-controls="smc-settings">Indicator settings</button>
+            </div>
+            <form id="smc-settings" class="smc-settings" hidden>
+              <fieldset><legend>Structure</legend>
+                <label><input type="checkbox" data-smc="internal"> Internal BOS / CHoCH</label>
+                <label><input type="checkbox" data-smc="swing"> Swing BOS / CHoCH</label>
+                <label><input type="checkbox" data-smc="swingPoints"> Swing points (HH / HL / LH / LL)</label>
+                <label><input type="checkbox" data-smc="strongWeak"> Strong / weak highs and lows</label>
+                <label><input type="checkbox" data-smc="confluence"> Internal confluence filter</label>
+                <label>Swing length <input type="number" data-smc="swingLength" min="10" max="200" step="1"></label>
+                <label>Internal bullish <select data-smc="internalBull"><option>All</option><option>BOS</option><option>CHoCH</option></select></label>
+                <label>Internal bearish <select data-smc="internalBear"><option>All</option><option>BOS</option><option>CHoCH</option></select></label>
+                <label>Swing bullish <select data-smc="swingBull"><option>All</option><option>BOS</option><option>CHoCH</option></select></label>
+                <label>Swing bearish <select data-smc="swingBear"><option>All</option><option>BOS</option><option>CHoCH</option></select></label>
+              </fieldset>
+              <fieldset><legend>Order blocks</legend>
+                <label><input type="checkbox" data-smc="internalBlocks"> Internal order blocks</label>
+                <label>Internal blocks shown <input type="number" data-smc="internalCount" min="1" max="20" step="1"></label>
+                <label><input type="checkbox" data-smc="swingBlocks"> Swing order blocks</label>
+                <label>Swing blocks shown <input type="number" data-smc="swingCount" min="1" max="20" step="1"></label>
+                <label>Volatility filter <select data-smc="blockFilter"><option>Atr</option><option>Cumulative Mean Range</option></select></label>
+                <label>Mitigation <select data-smc="mitigation"><option>High/Low</option><option>Close</option></select></label>
+              </fieldset>
+              <fieldset><legend>Levels &amp; zones</legend>
+                <label><input type="checkbox" data-smc="equal"> Equal highs / lows</label>
+                <label>Confirmation bars <input type="number" data-smc="equalLength" min="1" max="50" step="1"></label>
+                <label>Equal threshold (× ATR) <input type="number" data-smc="equalThreshold" min="0" max="0.5" step="0.01"></label>
+                <label><input type="checkbox" data-smc="fvg"> Fair value gaps · chart timeframe</label>
+                <label><input type="checkbox" data-smc="fvgAuto"> FVG auto threshold</label>
+                <label>FVG extension (bars) <input type="number" data-smc="fvgExtend" min="0" max="100" step="1"></label>
+                <label><input type="checkbox" data-smc="zones"> Premium / discount / equilibrium</label>
+                <label><input type="checkbox" data-smc="daily"> Previous day high / low</label>
+                <label><input type="checkbox" data-smc="weekly"> Previous week high / low</label>
+                <label><input type="checkbox" data-smc="monthly"> Previous month high / low</label>
+              </fieldset>
+              <fieldset><legend>Appearance</legend>
+                <label>Mode <select data-smc="mode"><option>Historical</option><option>Present</option></select></label>
+                <label>Style <select data-smc="style"><option>Colored</option><option>Monochrome</option></select></label>
+                <label><input type="checkbox" data-smc="colorCandles"> Color candles by internal trend</label>
+                <button type="button" class="button button-muted" id="smc-reset">Reset to Pine defaults</button>
+                <p>Live-bar signals can change until the candle closes. Structure uses the 1,000 loaded candles.</p>
+              </fieldset>
+            </form>
+            <div class="chart-summary"><strong id="last-price">—</strong><span id="day-change" class="muted">loading…</span><span class="muted">24 hour change</span><span class="muted" id="day-range"></span></div>
+            <div class="chart-wrap tv-wrap"><div id="tv-chart" class="tv-chart" aria-label="Live BTCUSDT candlestick chart"></div><div class="ohlc-legend" id="ohlc-legend"></div></div>
+            <div class="chart-legend"><span><i class="legend-bull"></i>Bullish</span><span><i class="legend-bear"></i>Bearish</span><span class="chart-note" id="chart-note">Connecting to Binance BTCUSDT feed…</span></div>
+            <div class="indicator-credit">Smart Money Concepts © LuxAlgo · JavaScript adaptation · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> · <a href="/indicators/luxalgo-smc.pine" download>Original Pine source</a></div>
+          </section>
+          <section class="panel ob1h-block" id="manual-trading" aria-label="Manual paper trading">
+            <div class="panel-heading"><div><h2>Manual paper trading · BTCUSDT</h2><p>Independent 10,000 USDT account · several positions can be open at once</p></div><span class="live-tag">PAPER ONLY</span></div>
+            <p id="manual-account" class="strategy-note">Connecting to live prices…</p>
+            <form id="manual-order" class="manual-form">
+              <label>Quantity (BTC)<input name="quantity" type="number" min="0.000001" step="any" value="0.001" required /></label>
+              <label>Stop-loss (USDT)<input name="stop" type="number" min="0.01" step="any" placeholder="Optional" /></label>
+              <label>Take-profit (USDT)<input name="target" type="number" min="0.01" step="any" placeholder="Optional" /></label>
+              <label>Trailing distance (%)<input name="trail_pct" type="number" min="0.001" max="99.999" step="any" placeholder="Optional, e.g. 1" /></label>
+              <div class="manual-actions"><button class="button manual-buy" type="submit" value="long" disabled>Buy / Long</button><button class="button manual-sell" type="submit" value="short" disabled>Sell / Short</button></div>
+            </form>
+            <div id="manual-positions" class="pos-grid"></div>
+            <p id="manual-message" role="status" aria-live="polite" class="strategy-note"></p>
+            <div class="orders-block"><h3>Recent orders</h3><div class="table-wrap"><table><thead><tr><th>SIDE</th><th>SIZE</th><th>ENTRY</th><th>EXIT</th><th>CLOSED (IST)</th><th>REASON</th><th>NET RETURN</th><th>NET P&amp;L</th></tr></thead><tbody id="manual-orders"></tbody></table></div></div>
+            <p class="strategy-note">1× total notional maximum · fee 0.05% + slippage 0.02% per side. Trail follows the best observed price from entry. SL/TP/trail check every 2 seconds while the backend runs; gaps fill at the next observed price. No funding or liquidation model.</p>
+          </section>
+          <section class="panel ob1h-block"><div class="panel-heading"><div><h2>Open positions · all strategies</h2><p>Each strategy uses its own paper account</p></div></div><div id="all-positions" class="pos-grid"></div></section>
+          <section class="ob1h" id="strategy" aria-label="1H order-block mitigation paper strategy">
+            <div class="ob1h-heading"><div><div class="eyebrow">PAPER STRATEGY · BINANCE BTCUSDT · NO REAL ORDERS</div><h2>1H order-block mitigation</h2><p id="ob1h-subtitle">Bearish block revisited → short · bullish block revisited → long · stop beyond the block, trailed every candle</p></div><span class="live-tag" id="ob1h-chip"><i></i>LOADING</span></div>
+            <div class="panel ob1h-metrics" aria-label="Strategy metrics"><div><span>Avg R / trade</span><strong id="ob1h-r">—</strong></div><div><span>Profit factor</span><strong id="ob1h-pf">—</strong></div><div><span>Max drawdown</span><strong id="ob1h-dd">—</strong></div><div><span>Fees paid</span><strong id="ob1h-fees">—</strong></div><div><span>Avg hold</span><strong id="ob1h-hold">—</strong></div><div><span>Long / short</span><strong id="ob1h-ls">—</strong></div><div><span>Trades closed</span><strong id="ob1h-n">—</strong></div></div>
+            <div class="ob1h-grid">
+              <article class="panel ob1h-position"><div class="panel-heading compact"><div><h2>Open position · 1H order-block mitigation</h2><p id="ob1h-pos-sub">Entry, stop-loss and trailing history</p></div><span class="count-badge" id="ob1h-pos-count">0</span></div><div id="ob1h-position"></div></article>
+              <article class="panel ob1h-rules"><div class="panel-heading compact"><div><h2>Strategy rules</h2><p>Exactly what the paper bot executes</p></div></div><ol id="ob1h-rules"></ol></article>
+            </div>
+            <article class="panel ob1h-block"><div class="panel-heading compact"><div><h2>Order-block watchlist</h2><p>The newest five active 1h internal blocks (LuxAlgo SMC) and what the bot will do at each</p></div><span class="count-badge" id="ob1h-watch-count">0</span></div><div class="table-wrap"><table><thead><tr><th>BLOCK</th><th>ACTION ON REVISIT</th><th>ZONE (BOTTOM – TOP)</th><th>ENTRY LEVEL</th><th>PLANNED STOP</th><th>DISTANCE</th><th>FORMED (IST)</th><th>STATUS</th></tr></thead><tbody id="ob1h-watch"></tbody></table></div></article>
+            <div class="ob1h-grid ob1h-grid-wide">
+              <article class="panel ob1h-block"><div class="panel-heading compact"><div><h2>Equity curve</h2><p>Balance after each closed trade</p></div></div><div id="ob1h-curve" class="ob1h-curve"></div></article>
+              <article class="panel ob1h-block"><div class="panel-heading compact"><div><h2>Bot activity</h2><p>Signals, fills, stop trails and exits</p></div></div><ul id="ob1h-events" class="ob1h-events"></ul></article>
+            </div>
+          </section>
+          </div>
+          <section id="strategies" hidden aria-label="Paper strategies">
+            <div class="panel-heading"><div><h2>Paper trading strategies</h2><p>Compare forward results. No strategy here is validated as profitable.</p></div></div>
+            <div id="strategy-list" class="strategy-cards"></div>
+            <p class="strategy-note">Accounts are independent: 10,000 USDT each for manual trading and order blocks. Returns use different sizing and feeds; they are not a controlled ranking. The older Delta rejection research replay is excluded from forward-paper results.</p>
+          </section>
+          <section class="trade-view" id="trades" hidden aria-label="Trade history">
+            <article class="panel ob1h-block"><div class="panel-heading"><div><h2>Trade history · all strategies</h2><p>Net results after each strategy’s modeled costs</p></div><label>Strategy <select id="strategy-filter"><option value="">All strategies</option></select></label></div>
+            <p id="all-trades-count" class="strategy-note"></p>
+            <div class="table-wrap"><table><thead><tr><th>STRATEGY</th><th>MARKET</th><th>SIDE</th><th>ENTRY (IST)</th><th>EXIT (IST)</th><th>EXIT REASON</th><th>NET RETURN</th><th>NET P&amp;L</th><th>FEES / GST</th><th>DATA QUALITY</th></tr></thead><tbody id="all-trades"></tbody></table></div>
+            <p class="strategy-note">Paper results after modeled fees and slippage; funding is excluded.</p></article>
+          </section>
+          <footer><span>Delta Desk <span class="dot-sep">·</span> Local paper trading terminal</span><span><i class="footer-dot"></i> Live orders disabled <span class="dot-sep">·</span> Data shown in Asia/Kolkata</span></footer>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/vendor/lightweight-charts.standalone.production.js"></script>
+    <script src="/indicators/smc.js"></script>
+    <script src="/app.js"></script>
+    <script src="/ob1h.js"></script>
+    <script src="/nav.js"></script>
+    <script src="/positions.js"></script>
+    <script src="/strategies.js"></script>
+    <script src="/manual.js"></script>
+    <script type="module" src="/push.js"></script>
+  </body>
+</html>

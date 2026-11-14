@@ -1,0 +1,12 @@
+[
+  {
+    "name": "pip",
+    "version": "26.3",
+    "advisories": []
+  },
+  {
+    "name": "setuptools",
+    "version": "84.2.1",
+    "advisories": []
+  }
+]

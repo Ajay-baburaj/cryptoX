@@ -1,0 +1,11 @@
+{
+ "n_variants": 1040,
+ "n_tested_in_mt": 964,
+ "best_weekly_mean": 0.33284293112299657,
+ "white_rc_p": 0.9783333333333334,
+ "studentized_max_t_p": 0.7986666666666666,
+ "n_bh_q_lt_10pct": 0,
+ "n_pass_selection": 7,
+ "n_finalists": 3,
+ "sec": 41
+}

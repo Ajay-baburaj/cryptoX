@@ -1,0 +1,17 @@
+exchange:
+  name: delta
+  rest_url: https://api.india.delta.exchange
+  websocket_url: wss://public-socket.india.delta.exchange
+symbols:
+  - BTCUSD
+timeframes:
+  - 1m
+risk:
+  max_position_size: 0.001
+  max_daily_loss: 100.0
+  max_open_orders: 3
+  kill_switch: false
+trading:
+  mode: paper
+  fee_rate: 0.001
+  slippage_rate: 0.0005

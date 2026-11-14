@@ -1,0 +1,1 @@
+"""Delta crypto bot package."""

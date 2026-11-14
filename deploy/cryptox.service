@@ -1,0 +1,26 @@
+[Unit]
+Description=CryptoX paper trading dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cryptox
+Group=cryptox
+WorkingDirectory=/opt/cryptox
+EnvironmentFile=/opt/cryptox/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/cryptox/.venv/bin/python /opt/cryptox/scripts/run_paper.py
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/cryptox/data /opt/cryptox/logs
+MemoryMax=2500M
+
+[Install]
+WantedBy=multi-user.target

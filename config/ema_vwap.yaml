@@ -1,0 +1,57 @@
+# EMA(9/20) + session VWAP intraday trend filter — the rules behind `make ema-vwap-backtest`.
+#
+# STATUS (2026-11-02 research): no edge found. Tested against BTCUSD 1m candles, Jan-Oct 2026
+# (train Jan-May, test Jul-Oct). The raw signal — price above VWAP and EMA9 above EMA20 — has a
+# 47-53% hit rate on forward returns at every horizon from 30 minutes to 1 day, which is a coin
+# flip. 41,736 filled-in variants of trigger/stop/target/exit/filters were grid-searched; only
+# ~30 survived at >=55% win rate in both halves, all clustered at the 25-trade minimum sample
+# size used to admit a row — a classic sign of overfitting to noise, not a real edge. See
+# data/reports/ema_vwap_research.csv and scripts/research_ema_vwap.py.
+#
+# This file fills in every rule the source video left unstated (entry trigger, stop, target,
+# session filter, chop filter, sizing) with the most literal, defensible reading of the rules
+# as described, not with the "best" row from the grid search above (that row is overfit noise).
+# Do not trade this live. It is kept as a documented baseline and for future re-testing if the
+# user has a different instrument, timeframe or data source to try.
+
+strategy:
+  symbol: BTCUSD
+  timeframe_minutes: 5       # the video highlights 5m; 15m was also researched, no better
+  fast_ema: 9
+  slow_ema: 20
+  session_reset_utc_hour: 0  # 00:00 UTC = 05:30 IST; crypto trades 24/7, so VWAP resets daily here
+
+  # Entry trigger — the video gives a FILTER ("before you enter, make sure..."), not a trigger.
+  # "cross" is the most literal reading: enter when the 9/20 EMAs cross while VWAP already agrees
+  # (if VWAP doesn't agree yet, wait). Alternatives tested: vwap_reclaim, align, pullback — none
+  # of the four did reliably better than another.
+  trigger: cross
+
+  # Stop-loss — not given. atr = k * ATR(14) from the entry price.
+  # Alternatives tested: swing (beyond the N-bar high/low), vwap, slow_ema — no reliable winner.
+  stop: atr
+  stop_atr: 1.5
+  swing_lookback: 10
+  min_stop_pct: 0.002        # skip trades whose stop is tighter than this; fees would dominate
+
+  # Target / exit — not given. A fixed R-multiple target, or exit_on an opposite signal.
+  target_r: 1.5
+  exit_on: none              # none | opposite (9/20 flip) | vwap (close crosses back through VWAP)
+  flat_at_session_end: true
+  max_hours: 24
+
+  # Filters — the video gives none of these; all were added here and tested.
+  skip_open_minutes: 0       # minutes after the daily VWAP reset to skip (VWAP is noisy early)
+  min_adx: 0                 # chop filter: 15m-timeframe ADX(14) must be at least this (0 = off)
+  htf_filter: none           # none | h1_ema50 | h4_ema50: require agreement with that higher trend
+  min_ema_gap_atr: 0         # require |EMA9 - EMA20| to exceed this many ATRs (0 = off)
+  sides: both                # both | long | short
+
+  # Costs and sizing
+  fee_per_side: 0.00059      # 0.05% taker + 18% GST, matching Delta India and the OB strategy
+  risk_per_trade_pct: 1.0    # % of equity risked per trade when position-sized (not 1x notional)
+  max_leverage: 10.0
+
+data:
+  minute_parquet: data/parquet/BTCUSD_1m_20260101_20261026.parquet
+  train_test_split: "2026-06-01"   # train before this date, test on/after (June data is missing)

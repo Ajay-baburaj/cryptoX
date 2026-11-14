@@ -1,0 +1,14 @@
+{
+  "hosting": {
+    "site": "cryptox-5a848",
+    "public": "dist-hosted",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{"source":"/login","destination":"/login.html"}],
+    "headers": [{"source":"**","headers":[
+      {"key":"Cache-Control","value":"no-store"},
+      {"key":"X-Content-Type-Options","value":"nosniff"},
+      {"key":"X-Frame-Options","value":"DENY"},
+      {"key":"Referrer-Policy","value":"same-origin"}
+    ]}]
+  }
+}
