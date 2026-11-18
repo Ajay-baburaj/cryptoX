@@ -1,4 +1,5 @@
-// 1H order-block mitigation paper strategy: renders /api/ob1h (see src/execution/ob1h_engine.py).
+// Order-block mitigation paper strategies (1h / 15m / 5m): renders /api/ob/{tf} (see src/execution/ob1h_engine.py).
+// The timeframe tabs switch which engine's account, position and watchlist are shown.
 // Loaded after app.js and reuses its `candleSeries` to draw the open position's levels on the chart.
 (() => {
   const $ = (id) => document.querySelector(`#${id}`);
@@ -15,6 +16,10 @@
   const sideClass = (side) => (side === 'long' ? 'buy' : 'sell');
   const cls = (v) => (v >= 0 ? 'positive-text' : 'negative-text');
   const reasonText = { initial_stop: 'Initial stop hit', trailing_stop: 'Trailing stop hit' };
+  const TFS = ['1h', '15m', '5m'];
+  let tf = '1h';
+  try { if (TFS.includes(localStorage.getItem('ob-tf'))) tf = localStorage.getItem('ob-tf'); } catch { /* storage unavailable */ }
+  let loadSeq = 0;
 
   function setChip(state, text) {
     chips.forEach((chip) => {
@@ -64,7 +69,7 @@
     $('ob1h-pos-sub').textContent = 'Live paper trade, marked to the latest Binance price';
     const moves = p.stop_moves.length
       ? `<div class="ob1h-moves-title">STOP TRAIL · ${p.stop_moves.length} MOVE${p.stop_moves.length > 1 ? 'S' : ''}</div><ul class="ob1h-moves">${[...p.stop_moves].reverse().map((m) => `<li><span>${ist(m.time)} IST</span><b>$${px(m.stop)}</b></li>`).join('')}</ul>`
-      : '<div class="ob1h-moves-title">STOP TRAIL</div><div class="ob1h-empty">Stop still at the initial level beyond the order block. It will trail on each closed 1h candle.</div>';
+      : `<div class="ob1h-moves-title">STOP TRAIL</div><div class="ob1h-empty">Stop still at the initial level beyond the order block. It will trail on each closed ${d.timeframe} candle${d.config.trail_activate_r > 0 ? ` once it is ${d.config.trail_activate_r}R in profit` : ''}.</div>`;
     box.innerHTML = `<div class="ob1h-pos-head"><span class="side-pill ${sideClass(p.side)}">${p.side.toUpperCase()}</span>`
       + `<span class="zone">${p.side === 'short' ? 'Bearish' : 'Bullish'} OB $${px(p.zone_bottom)} – $${px(p.zone_top)} · formed ${ist(p.zone_created)} IST</span>`
       + `<span class="neutral-tag">${p.trailing ? 'TRAILING' : 'INITIAL STOP'}</span></div>${ladder(p)}`
@@ -82,11 +87,11 @@
 
   function renderRules(d) {
     const c = d.config;
-    $('ob1h-rules').innerHTML = `<li><b>Order blocks:</b> LuxAlgo SMC internal blocks on <b>1h</b> candles (swing 50, ATR-200 filter, newest five, ${c.mitigation === 'wick' ? 'high/low' : 'close'} invalidation).</li>`
+    $('ob1h-rules').innerHTML = `<li><b>Order blocks:</b> LuxAlgo SMC internal blocks on <b>${d.timeframe}</b> candles (swing 50, ATR-200 filter, newest five, ${c.mitigation === 'wick' ? 'high/low' : 'close'} invalidation).</li>`
       + '<li><b>Bearish block revisited → SHORT.</b> First time price rises into the block’s lower edge.</li>'
       + '<li><b>Bullish block revisited → LONG.</b> First time price falls into the block’s upper edge.</li>'
       + `<li><b>Stop-loss</b> beyond the far edge: <b>above</b> a bearish block, below a bullish one, plus <code>${c.stop_buffer_atr}×ATR(14)</code>.</li>`
-      + `<li><b>No target. Trail on every closed 1h candle:</b> stop follows the ${c.trail_lookback === 1 ? 'previous candle’s' : `last ${c.trail_lookback} candles’`} ${'high (short) / low (long)'} ± <code>${c.trail_buffer_atr}×ATR</code>; it only ever tightens.</li>`
+      + `<li><b>No target. Trail on every closed ${d.timeframe} candle${c.trail_activate_r > 0 ? ` once a candle closes ${c.trail_activate_r}R in profit` : ''}:</b> stop follows the ${c.trail_lookback === 1 ? 'previous candle’s' : `last ${c.trail_lookback} candles’`} ${'high (short) / low (long)'} ± <code>${c.trail_buffer_atr}×ATR</code>; it only ever tightens.</li>`
       + `<li><b>Fill:</b> market at the next 1m open after the touch. One block, one trade; one position at a time.</li>`
       + `<li><b>Sizing:</b> risk ${c.risk_pct}% of equity per trade (cap ${c.max_notional_x}× notional). Costs: ${(c.fee_per_side * 100).toFixed(2)}% fee + ${(c.slippage_per_side * 100).toFixed(2)}% slippage per side.</li>`
       + '<li class="note">Research on this rule set found no after-cost edge (backtests 2024–2026 all negative). It is here to be observed, not trusted.</li>';
@@ -155,13 +160,19 @@
 
   async function load() {
     try {
-      const response = await window.cryptoApiFetch('/api/ob1h');
+      const seq = ++loadSeq;
+      const response = await window.cryptoApiFetch(`/api/ob/${tf}`);
       if (response.status === 401) {
         window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`; // session expired
         return;
       }
       if (!response.ok) throw new Error(response.status);
       const d = await response.json();
+      if (seq !== loadSeq) return; // a newer tab switch is in flight
+      const name = `${d.timeframe.toUpperCase()} order-block mitigation`;
+      $('ob1h-title').textContent = name;
+      $('ob1h-pos-title').textContent = name;
+      $('ob1h-watch-tf').textContent = d.timeframe;
       if (d.status === 'starting') {
         setChip('loading', 'WARMING UP');
         return;
@@ -182,6 +193,20 @@
     }
   }
 
-  load();
+  function select(next) {
+    if (!TFS.includes(next)) return;
+    tf = next;
+    try { localStorage.setItem('ob-tf', tf); } catch { /* storage unavailable */ }
+    document.querySelectorAll('#ob-tf-tabs button').forEach((b) => {
+      b.classList.toggle('selected', b.dataset.tf === tf);
+      b.setAttribute('aria-selected', String(b.dataset.tf === tf));
+    });
+    setChip('loading', 'LOADING');
+    load();
+  }
+  document.querySelectorAll('#ob-tf-tabs button').forEach((b) => b.addEventListener('click', () => select(b.dataset.tf)));
+  window.obSelectTimeframe = select;
+
+  select(tf);
   window.setInterval(load, 10000);
 })();

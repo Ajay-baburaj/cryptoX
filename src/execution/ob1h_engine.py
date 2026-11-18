@@ -1,4 +1,6 @@
-"""Live paper-trading engine for the 1h order-block mitigation strategy.
+"""Live paper-trading engine for the order-block mitigation strategy (1h, 15m or 5m blocks).
+
+One engine per block timeframe; each keeps its own paper account and state file.
 
 Reads Binance spot BTCUSDT candles from the public ``data-api.binance.vision`` endpoint, the same
 feed as the dashboard chart (no API key; nothing is ever sent to an exchange). Every poll it
@@ -23,7 +25,7 @@ import aiohttp
 import numpy as np
 import pandas as pd
 
-from strategy.ob_mitigation_1h import Config, OB1hStrategy, NS_HOUR, NS_MIN, load_config, make_bars
+from strategy.ob_mitigation_1h import Config, OB1hStrategy, NS_MIN, load_config, make_bars
 
 LOG = logging.getLogger("ob1h_engine")
 REST = "https://data-api.binance.vision"
@@ -44,6 +46,8 @@ class Ob1hEngine:
     state_path: Path = field(default_factory=lambda: Path("data/paper/ob1h_state.json"))
     poll_seconds: int = 15
     on_event: Callable[[dict], None] | None = None  # e.g. push notifications on entry / exit
+    strategy_id: str = "ob1h_mitigation"
+    strategy_name: str = "1H order-block mitigation"
 
     strategy: OB1hStrategy = field(init=False)
     mark_price: float | None = field(default=None, init=False)
@@ -55,6 +59,9 @@ class Ob1hEngine:
 
     def __post_init__(self) -> None:
         self.strategy = OB1hStrategy(self.cfg)
+        self.tf_minutes = int(self.cfg.timeframe_minutes)
+        self.tf_ns = self.tf_minutes * NS_MIN
+        self.interval = "1h" if self.tf_minutes == 60 else f"{self.tf_minutes}m"
 
     # ---- data --------------------------------------------------------------------------
 
@@ -67,13 +74,14 @@ class Ob1hEngine:
         return body
 
     async def _refresh_bars(self, session: aiohttp.ClientSession) -> None:
-        rows = await self._get(session, {"interval": "1h", "limit": 1000})
+        rows = await self._get(session, {"interval": self.interval, "limit": 1000})
         frame = _klines_frame(rows, True)
         now = pd.Timestamp.now(tz="UTC")
-        frame = frame[frame.index + pd.Timedelta(hours=1) <= now]  # closed candles only
-        frame.index = frame.index + pd.Timedelta(hours=1)          # label by close time
-        self.strategy.load_bars(make_bars(frame))
-        self._bar_limit_ns = int(self.strategy.bar_ns[-1]) + NS_HOUR
+        step = pd.Timedelta(minutes=self.tf_minutes)
+        frame = frame[frame.index + step <= now]  # closed candles only
+        frame.index = frame.index + step          # label by close time
+        self.strategy.load_bars(make_bars(frame, self.tf_minutes))
+        self._bar_limit_ns = int(self.strategy.bar_ns[-1]) + self.tf_ns
 
     async def _minutes_since(self, session: aiohttp.ClientSession, start_ns: int) -> pd.DataFrame:
         """Closed 1m candles with open time >= start_ns; also refreshes the mark price."""
@@ -99,9 +107,9 @@ class Ob1hEngine:
         s = self.strategy
         for ts, row in zip(minutes.index.as_unit("ns").asi8, minutes[["open", "high", "low", "close"]].to_numpy()):
             if int(ts) >= self._bar_limit_ns:
-                break  # wait for the 1h bar that closed to be published before using later minutes
+                break  # wait for the bar that closed to be published before using later minutes
             for event in s.on_minute(int(ts), *row, trade=trade):
-                LOG.info("ob1h %s", event)
+                LOG.info("%s %s", self.strategy_id, event)
                 if self.on_event is not None:
                     try:
                         self.on_event(event)
@@ -167,7 +175,7 @@ class Ob1hEngine:
                     else:
                         await self._tick(session)
                 except Exception:
-                    LOG.exception("ob1h engine tick failed; retrying shortly")
+                    LOG.exception("%s engine tick failed; retrying shortly", self.strategy_id)
                     self.status = "degraded"
                     await asyncio.sleep(5)
                     continue
@@ -196,8 +204,9 @@ class Ob1hEngine:
         st = s.stats()
         if st["profit_factor"] == float("inf"):
             st["profit_factor"] = None
-        identity = {"strategy_id": "ob1h_mitigation", "strategy_name": "1H order-block mitigation",
-                    "symbol": self.cfg.symbol, "venue": "Binance Spot", "currency": "USDT"}
+        identity = {"strategy_id": self.strategy_id, "strategy_name": self.strategy_name,
+                    "symbol": self.cfg.symbol, "venue": "Binance Spot", "currency": "USDT",
+                    "timeframe": self.interval}
         if position:
             position.update(identity)
         return {

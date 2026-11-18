@@ -18,6 +18,7 @@ from aiohttp import web
 
 from execution.auth import AuthConfig, add_auth
 from execution.ob1h_engine import Ob1hEngine
+from strategy.ob_mitigation_1h import load_config
 from execution.paper_engine import PaperEngine
 from execution.manual_engine import ManualEngine
 from execution.push import Notifier, PushStore, add_push_routes
@@ -25,6 +26,23 @@ from execution.push import Notifier, PushStore, add_push_routes
 
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = ROOT / "frontend"
+
+# Extra order-block mitigation variants that run next to the 1h engine: label -> (config, state file).
+OB_VARIANTS = {
+    "15m": ("config/ob_mitigation_15m.yaml", "data/paper/ob15m_state.json"),
+    "5m": ("config/ob_mitigation_5m.yaml", "data/paper/ob5m_state.json"),
+}
+
+
+def make_ob_engine(label: str) -> Ob1hEngine:
+    cfg_path, state = OB_VARIANTS[label]
+    return Ob1hEngine(cfg=load_config(ROOT / cfg_path), state_path=ROOT / state,
+                      strategy_id=f"ob{label}_mitigation", strategy_name=f"{label.upper()} order-block mitigation")
+
+
+def ob_engines(app) -> dict[str, Ob1hEngine]:
+    """All order-block engines keyed by timeframe label, 1h first."""
+    return {"1h": app["ob1h"], **app["ob_extra"]}
 
 
 async def handle_summary(request: web.Request) -> web.Response:
@@ -37,12 +55,21 @@ async def handle_positions(request: web.Request) -> web.Response:
     return web.json_response({"positions": [p for s in strategies for p in s["positions"]]}, dumps=lambda o: json.dumps(o, default=float))
 
 
-def strategy_snapshots(app):
-    ob = app['ob1h'].snapshot(trade_limit=len(app['ob1h'].strategy.trades))
+def ob_snapshot(engine: Ob1hEngine, trade_limit: int = 200) -> dict:
+    ob = engine.snapshot(trade_limit=trade_limit)
+    c, tf = engine.cfg, engine.interval
     ob['validation'] = 'Research found no edge after costs · paper observation only'
-    ob['rules'] = 'First revisit of a 1h order block; long or short. Stop beyond block + 0.25 ATR; trails every closed 1h candle. Risk 0.5% of equity, max 3× notional. Fee 0.05% and slippage 0.02% per side.'
+    ob['rules'] = (f'First revisit of a {tf} order block; long or short. Stop beyond block + {c.stop_buffer_atr} ATR; '
+                   f'trails every closed {tf} candle once {c.trail_activate_r}R in profit (last {c.trail_lookback} candles). '
+                   f'Risk {c.risk_pct}% of equity, max {c.max_notional_x:g}× notional. '
+                   f'Fee {c.fee_per_side * 100:.2f}% and slippage {c.slippage_per_side * 100:.2f}% per side.')
     ob['positions'] = [ob['position']] if ob['position'] else []
-    return [ob, app['manual'].snapshot()]
+    return ob
+
+
+def strategy_snapshots(app):
+    obs = [ob_snapshot(e, trade_limit=len(e.strategy.trades)) for e in ob_engines(app).values()]
+    return [*obs, app['manual'].snapshot()]
 
 
 async def handle_manual(request: web.Request) -> web.Response:
@@ -77,6 +104,13 @@ async def handle_ob1h(request: web.Request) -> web.Response:
     return web.json_response(engine.snapshot(), dumps=lambda o: json.dumps(o, default=float))
 
 
+async def handle_ob(request: web.Request) -> web.Response:
+    engine = ob_engines(request.app).get(request.match_info["tf"])
+    if engine is None:
+        raise web.HTTPNotFound(text="Unknown timeframe")
+    return web.json_response(engine.snapshot(), dumps=lambda o: json.dumps(o, default=float))
+
+
 async def handle_index(request: web.Request) -> web.FileResponse:
     return web.FileResponse(FRONTEND_DIR / "index.html")
 
@@ -95,6 +129,7 @@ async def start_engine(app: web.Application) -> None:
     engine: PaperEngine = app["engine"]
     app["engine_task"] = asyncio.create_task(engine.run())
     app["ob1h_task"] = asyncio.create_task(app["ob1h"].run())
+    app["ob_extra_tasks"] = [asyncio.create_task(e.run()) for e in app["ob_extra"].values()]
     app['manual_task'] = asyncio.create_task(app['manual'].run())
 
 
@@ -105,26 +140,34 @@ async def stop_engine(app: web.Application) -> None:
         if task is not None:
             task.cancel()
             tasks.append(task)
+    for task in app.get("ob_extra_tasks", []):
+        task.cancel()
+        tasks.append(task)
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
 def build_app(engine: PaperEngine | None = None, ob1h: Ob1hEngine | None = None,
               auth: AuthConfig | None = None, start_engines: bool = True,
-              push_tokens: Path | None = None, manual: ManualEngine | None = None) -> web.Application:
+              push_tokens: Path | None = None, manual: ManualEngine | None = None,
+              ob_extra: dict[str, Ob1hEngine] | None = None) -> web.Application:
     app = web.Application()
     auth = auth or AuthConfig.from_env()  # fails closed when login isn't configured
     add_auth(app, auth)
     app["engine"] = engine or PaperEngine()
     app["ob1h"] = ob1h or Ob1hEngine()
+    app["ob_extra"] = ob_extra if ob_extra is not None else {label: make_ob_engine(label) for label in OB_VARIANTS}
     app['manual'] = manual or ManualEngine()
     notifier = Notifier(auth.backend, PushStore(push_tokens or ROOT / "data/paper/push_tokens.json"))
     app["notifier"] = notifier
-    app["ob1h"].on_event = lambda event: notifier.emit({**event, 'strategy_id': 'ob1h_mitigation', 'strategy_name': '1H order-block mitigation', 'symbol': 'BTCUSDT'})
+    for engine in ob_engines(app).values():
+        engine.on_event = (lambda e: lambda event: notifier.emit(
+            {**event, 'strategy_id': e.strategy_id, 'strategy_name': e.strategy_name, 'symbol': e.cfg.symbol}))(engine)
     add_push_routes(app, auth, notifier)
     app.router.add_get("/api/summary", handle_summary)
     app.router.add_get("/api/positions", handle_positions)
     app.router.add_get("/api/trades", handle_trades)
     app.router.add_get("/api/ob1h", handle_ob1h)
+    app.router.add_get("/api/ob/{tf}", handle_ob)
     app.router.add_get("/api/strategies", handle_strategies)
     app.router.add_get('/api/manual', handle_manual)
     app.router.add_post('/api/manual/{action:open|update|close}', handle_manual)

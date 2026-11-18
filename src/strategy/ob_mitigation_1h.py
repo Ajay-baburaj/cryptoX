@@ -1,4 +1,6 @@
-"""1h order-block mitigation strategy: causal, minute-by-minute state machine.
+"""Order-block mitigation strategy (1h, 15m or 5m blocks): causal, minute-by-minute state machine.
+
+The block timeframe is ``Config.timeframe_minutes`` (60 by default); "1h" below means that timeframe.
 
 The same ``OB1hStrategy`` object drives live paper trading (``execution.ob1h_engine``) and the
 historical replay (``scripts/backtest_ob_mitigation_1h.py``), so there is no separate backtest
@@ -35,6 +37,7 @@ NS_HOUR = 60 * NS_MIN
 @dataclass
 class Config:
     symbol: str = "BTCUSDT"
+    timeframe_minutes: int = 60
     mitigation: str = "wick"
     stop_buffer_atr: float = 0.25
     min_stop_pct: float = 0.002
@@ -57,10 +60,10 @@ def load_config(path: str | Path = "config/ob_mitigation_1h.yaml") -> Config:
     return Config(**known)
 
 
-def make_bars(h1: pd.DataFrame) -> pd.DataFrame:
-    """1h bars indexed by CLOSE time (UTC), complete candles only, with ATR(14) and gap segments."""
+def make_bars(h1: pd.DataFrame, timeframe_minutes: int = 60) -> pd.DataFrame:
+    """Bars indexed by CLOSE time (UTC), complete candles only, with ATR(14) and gap segments."""
     bars = h1[["open", "high", "low", "close", "volume"]].astype(float).copy()
-    bars["segment"] = bars.index.to_series().diff().gt(pd.Timedelta(hours=1)).cumsum().to_numpy()
+    bars["segment"] = bars.index.to_series().diff().gt(pd.Timedelta(minutes=timeframe_minutes)).cumsum().to_numpy()
     bars["atr"] = np.nan
     for _, run in bars.groupby("segment"):
         prev = run["close"].shift()
@@ -80,6 +83,7 @@ def _iso(ns: int) -> str:
 class OB1hStrategy:
     def __init__(self, cfg: Config | None = None):
         self.cfg = cfg or Config()
+        self.tf_ns = int(self.cfg.timeframe_minutes) * NS_MIN
         self.balance = self.cfg.start_balance
         self.consumed: set[str] = set()
         self.position: dict | None = None
@@ -224,7 +228,7 @@ class OB1hStrategy:
             pos = self.position
             # Only candles that opened at or after the entry minute: the entry candle mostly holds
             # pre-entry prices, and trailing to its extreme put the stop right next to the fill.
-            if pos is not None and self.bar_ns[i] - NS_HOUR >= pos["entry_ns"]:
+            if pos is not None and self.bar_ns[i] - self.tf_ns >= pos["entry_ns"]:
                 self._trail(i, out)
             self.trail_cursor_ns = int(self.bar_ns[i])
             i += 1

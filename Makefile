@@ -1,4 +1,4 @@
-.PHONY: setup data backtest strategy-backtest strategy-optimize daily-strategy-backtest ob-rejection-backtest ob-rejection-research ob-rejection-baseline ob-touch-backtest ob-touch-research mytradesetup-backtest ob15-diagnosis ob1h-backtest ob1h-grid firebase-check ema-vwap-backtest ema-vwap-research paper frontend test test-frontend volume-orderflow
+.PHONY: setup data backtest strategy-backtest strategy-optimize daily-strategy-backtest ob-rejection-backtest ob-rejection-research ob-rejection-baseline ob-touch-backtest ob-touch-research mytradesetup-backtest ob15-diagnosis ob1h-backtest ob1h-grid ob15m-backtest ob15m-grid ob5m-backtest ob5m-grid firebase-check ema-vwap-backtest ema-vwap-research paper frontend test test-frontend volume-orderflow
 
 setup:
 	python3 -m venv .venv
@@ -64,6 +64,18 @@ ob1h-backtest:
 
 ob1h-grid:
 	PYTHONPATH=src .venv/bin/python scripts/backtest_ob_mitigation_1h.py --grid
+
+ob15m-backtest:
+	PYTHONPATH=src .venv/bin/python scripts/backtest_ob_mitigation_1h.py --tf 15
+
+ob15m-grid:
+	PYTHONPATH=src .venv/bin/python scripts/backtest_ob_mitigation_1h.py --tf 15 --grid --periods development,validation
+
+ob5m-backtest:
+	PYTHONPATH=src .venv/bin/python scripts/backtest_ob_mitigation_1h.py --tf 5
+
+ob5m-grid:
+	PYTHONPATH=src .venv/bin/python scripts/backtest_ob_mitigation_1h.py --tf 5 --grid --periods development,validation
 
 firebase-check:
 	PYTHONPATH=src .venv/bin/python scripts/firebase_check.py

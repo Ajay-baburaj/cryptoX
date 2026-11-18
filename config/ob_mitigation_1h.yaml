@@ -16,6 +16,7 @@
 # and observation. Do not treat it as validated.
 
 strategy:
+  timeframe_minutes: 60      # block timeframe (minutes)
   symbol: BTCUSDT            # Binance spot, the same feed as the dashboard chart
   mitigation: wick           # wick (Pine default: high/low) | close - how a block gets invalidated
   stop_buffer_atr: 0.25      # extra room beyond the block's far edge, in 1h ATR(14)

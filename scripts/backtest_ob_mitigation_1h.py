@@ -1,4 +1,4 @@
-"""Replay the 1h order-block mitigation paper strategy on historical Binance BTCUSDT 1m data.
+"""Replay the order-block mitigation paper strategy (1h / 15m / 5m blocks) on historical Binance BTCUSDT 1m data.
 
 Uses the exact same ``OB1hStrategy`` state machine as live paper trading.
 Data: data/binance_ob_timeframes/minutes.parquet (Binance USD-M BTCUSDT perpetual, 2023-11..2026-10).
@@ -7,6 +7,7 @@ Trail settings are chosen on development + validation only; the test period is r
 
     python scripts/backtest_ob_mitigation_1h.py            # configured strategy
     python scripts/backtest_ob_mitigation_1h.py --grid     # trail variants
+    python scripts/backtest_ob_mitigation_1h.py --tf 15 --grid   # 15m blocks (config/ob_mitigation_15m.yaml)
 """
 from __future__ import annotations
 
@@ -56,25 +57,31 @@ def summarize(s: OB1hStrategy) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--grid", action="store_true")
+    ap.add_argument("--tf", type=int, default=60, choices=(5, 15, 60), help="block timeframe in minutes")
+    ap.add_argument("--periods", default=",".join(PERIODS), help="comma-separated subset of periods")
     args = ap.parse_args()
-    cfg = load_config(ROOT / "config/ob_mitigation_1h.yaml")
+    label = {60: "1h", 15: "15m", 5: "5m"}[args.tf]
+    cfg = load_config(ROOT / f"config/ob_mitigation_{label}.yaml")
+    assert cfg.timeframe_minutes == args.tf, "config timeframe_minutes does not match --tf"
     minutes = pd.read_parquet(DATA)
-    bars = make_bars(complete_bars(minutes, 60)[["open", "high", "low", "close", "volume"]])
+    bars = make_bars(complete_bars(minutes, args.tf)[["open", "high", "low", "close", "volume"]], args.tf)
+    prefix = "ob1h" if args.tf == 60 else f"ob{label}"
+    periods = {k: PERIODS[k] for k in args.periods.split(",")}
     variants = [("configured", cfg)]
     if args.grid:
         variants = [(f"activate{a}_lookback{n}", replace(cfg, trail_activate_r=a, trail_lookback=n))
-                    for a, n in product((0.0, 0.5, 1.0, 1.5, 2.0), (1, 2, 3))]
+                    for a, n in product((0.0, 0.5, 1.0, 1.5, 2.0, 3.0), (1, 2, 3, 5))]
     rows = []
     clock = time.monotonic()
     for name, c in variants:
-        for period, (start, end) in PERIODS.items():
+        for period, (start, end) in periods.items():
             s = run(minutes, bars, c, start, end)
             rows.append({"variant": name, "period": period, **summarize(s)})
             if not args.grid and period == "test":
-                pd.DataFrame(s.trades).drop(columns=["stop_moves"]).to_csv(OUT / "ob1h_test_trades.csv", index=False)
+                pd.DataFrame(s.trades).drop(columns=["stop_moves"]).to_csv(OUT / f"{prefix}_test_trades.csv", index=False)
             print(f"{name:22s} {period:11s} {rows[-1]}  [{time.monotonic() - clock:.0f}s]", flush=True)
     table = pd.DataFrame(rows)
-    table.to_csv(OUT / ("ob1h_grid.csv" if args.grid else "ob1h_backtest.csv"), index=False)
+    table.to_csv(OUT / (f"{prefix}_grid.csv" if args.grid else f"{prefix}_backtest.csv"), index=False)
     print(table.pivot(index="variant", columns="period", values="mean_R").to_string())
 
 

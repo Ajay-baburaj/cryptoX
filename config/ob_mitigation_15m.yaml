@@ -1,0 +1,39 @@
+# 15m order-block mitigation strategy (paper trading only; no real orders).
+# Used by `make paper` (live) and `make ob1h-backtest` (history).
+#
+# Rules
+#   * Order blocks: the user's LuxAlgo SMC internal blocks (internal length 5, swing 50,
+#     ATR(200) volatility parsing, newest 5 active blocks) on 15m candles, high/low mitigation.
+#   * Bearish OB mitigation -> SHORT: price first revisits (rises into) a bearish block's lower edge.
+#   * Bullish OB mitigation -> LONG: price first revisits (falls into) a bullish block's upper edge.
+#   * A block is traded at most once; its first revisit consumes it. Entry = next 1m open.
+#   * Initial stop-loss: beyond the FAR edge of the block (above a bear block, below a bull block)
+#     plus stop_buffer_atr x ATR(14, 15m).
+#   * No take-profit. The stop is trailed on every closed 15m candle and only ever tightens.
+#
+# STATUS: research (data/reports/ob_timeframes, research/ob_timeframe_report.md) found no
+# after-cost edge in raw 1h order-block retests (2026: -32%). This is built for paper trading
+# and observation. Do not treat it as validated.
+
+strategy:
+  timeframe_minutes: 15      # block timeframe (minutes)
+  symbol: BTCUSDT            # Binance spot, the same feed as the dashboard chart
+  mitigation: wick           # wick (Pine default: high/low) | close - how a block gets invalidated
+  stop_buffer_atr: 0.25      # extra room beyond the block's far edge, in 15m ATR(14)
+  min_stop_pct: 0.002        # skip entries whose stop is closer than 0.2% of price
+
+  # Trailing stop, evaluated once per CLOSED candle of the block timeframe, applied from the next minute.
+  # Long: stop = lowest low of the last N closed candles - buffer. Short: highest high + buffer.
+  trail_lookback: 2          # N candles: trail to the extreme of the last 2 closed candles
+  trail_buffer_atr: 0.1      # buffer beyond that extreme, in 15m ATR(14)
+  trail_activate_r: 1.5      # trail only once a closed 15m candle is at least 1.5R in profit; until then the block stop stays
+  # The entry candle is never used for trailing (it held pre-entry prices).
+  # Chosen 2026-11-17 on 2024 + 2025 only: best worst-period mean R of the 24 variants in
+  # data/reports/ob15m_grid.csv. ALL 24 lose heavily over 2024-2025; this is the least-bad one.
+
+account:
+  start_balance: 10000.0     # USDT, simulated
+  risk_pct: 0.5              # % of current equity risked per trade (distance entry -> initial stop)
+  max_notional_x: 3.0        # position notional cap as a multiple of equity
+  fee_per_side: 0.0005       # 0.05% taker
+  slippage_per_side: 0.0002  # 0.02% adverse on every market fill and stop fill

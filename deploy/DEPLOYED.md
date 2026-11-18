@@ -56,3 +56,9 @@ Before deployment, 104 Python tests and 9 chart tests passed. Service restarted 
 ## 1H order-block trailing fix — 14 November 2026
 
 Live trades were being stopped by the trail within the first hour and then moving 1.3R-9R in their favour. Cause: the trail started on the first closed 1h candle even while the trade was losing, and that candle could be the entry candle (mostly pre-entry prices). Fix: the entry candle is never used for trailing, and the stop only trails once a closed 1h candle is at least 1.5R in profit (lookback 2). Settings re-chosen on 2024-2025 only; backtest still loses money (2026 test -7.1% vs -31.2% before). Backup: `/var/backups/cryptox/pre-trailfix-*.tgz`. Frontend unchanged.
+
+## 15m + 5m order-block mitigation — 18 November 2026
+
+Added 15m and 5m order-block mitigation paper engines next to the 1h one (configs `config/ob_mitigation_15m.yaml` / `_5m.yaml`, state `data/paper/ob15m_state.json` / `ob5m_state.json`, API `/api/ob/{1h|15m|5m}`), each with its own 10,000 USDT account. The dashboard has a 1H / 15M / 5M switch. Code-only update: `.env`, existing 1h/manual/push state preserved (1h history intact). Backup: `/var/backups/cryptox/pre-obtf-20261118T093628Z.tgz`. Hosting republished; live assets match the local build.
+
+Validation: 117 Python tests passed; both new engines started on live Binance data with no errors; unauthenticated API still returns 401. Backtests (2026 test period) for the new variants are strongly negative: 15m -75%, 5m -98.5%. Paper observation only.

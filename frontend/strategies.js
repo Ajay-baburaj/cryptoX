@@ -28,7 +28,7 @@
       const card=node('article','','strategy-card');card.append(node('h3',s.strategy_name),node('p',`${s.venue} · ${s.symbol} · ${s.status.toUpperCase()}`),node('p',s.validation,'validation'));
       const pnl=node('p','');pnl.append(`Equity ${fmt(s.account.equity)} ${s.currency} · P&L `,node('span',`${window.PaperUI.signed(s.account.pnl)} ${s.currency}`,window.PaperUI.tone(s.account.pnl)),` · Closed trades ${s.stats.trades} · Win rate ${s.stats.trades?fmt(s.stats.win_rate)+'%':'not available'}`);card.append(pnl);
       card.append(node('p',s.rules),node('p',`Started: ${time(s.started_at)} IST · Feed update: ${time(s.last_update)} IST`));
-      if(s.strategy_id==='ob1h_mitigation'){const a=node('a','Order-block details');a.href='#strategy';card.append(a);}
+      if(s.timeframe&&/^ob.*_mitigation$/.test(s.strategy_id)){const a=node('a','Order-block details');a.href='#strategy';a.addEventListener('click',()=>window.obSelectTimeframe?.(s.timeframe));card.append(a);}
       list.append(card);
       for(const p of s.positions)positions.append(window.PaperUI.positionCard(p));
     }

@@ -291,9 +291,20 @@ def test_strategy_catalog_and_trade_ownership_labels(tmp_path):
         data=await (await client.get('/api/positions')).json()
         assert data['positions'][0]['strategy_id']=='manual_paper'
         catalog=await (await client.get('/api/strategies')).json()
-        assert {s['strategy_id'] for s in catalog['strategies']}=={'ob1h_mitigation','manual_paper'}
+        assert {s['strategy_id'] for s in catalog['strategies']}=={'ob1h_mitigation','ob15m_mitigation','ob5m_mitigation','manual_paper'}
         manual.close(position['id'])
         trades=await (await client.get('/api/trades')).json()
         assert trades['trades'][0]['strategy_name']=='Manual paper trading'
         assert (await client.get('/api/trades?limit=invalid')).status==400
     run_app(tmp_path,scenario)
+
+
+def test_order_block_timeframe_endpoints(tmp_path):
+    async def scenario(client, backend, app, cfg):
+        await login(client)
+        for tf, sid in (("1h", "ob1h_mitigation"), ("15m", "ob15m_mitigation"), ("5m", "ob5m_mitigation")):
+            data = await (await client.get(f"/api/ob/{tf}")).json()
+            assert data["strategy_id"] == sid and data["timeframe"] == tf
+            assert data["config"]["timeframe_minutes"] == {"1h": 60, "15m": 15, "5m": 5}[tf]
+        assert (await client.get("/api/ob/4h")).status == 404
+    run_app(tmp_path, scenario)

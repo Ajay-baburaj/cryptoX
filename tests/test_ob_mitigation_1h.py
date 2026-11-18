@@ -152,3 +152,30 @@ def test_state_round_trip_and_baseline_consumes_already_revisited_blocks():
     t = OB1hStrategy(s.cfg)
     t.from_state(s.to_state())
     assert t.consumed == s.consumed and t.balance == s.balance
+
+
+def test_15m_blocks_trail_on_15m_candles_and_skip_the_entry_candle():
+    idx = pd.date_range(T0, periods=12, freq="15min")  # close times
+    bars = pd.DataFrame({"open": 100.0, "high": 100.5, "low": 99.5, "close": 100.0, "volume": 1.0,
+                         "segment": 0, "atr": 1.0}, index=idx)
+    s = build(-1, 110.0, 108.0, bars, timeframe_minutes=15, trail_activate_r=0, trail_lookback=1, trail_buffer_atr=0.0)
+    start = T0 + pd.Timedelta(minutes=17)
+    feed(s, start, [(100, 101, 99, 100), (100, 108.5, 100, 108), (108, 108, 107, 107)])  # fill at 00:19
+    assert s.position is not None and s.tf_ns == 15 * NS_MIN
+    t30, t45 = T0 + pd.Timedelta(minutes=30), T0 + pd.Timedelta(minutes=45)
+    bars.loc[t30, "high"] = 104.0  # the 00:15-00:30 candle contains the entry: never used
+    bars.loc[t45, "high"] = 103.0  # the first full 15m candle after entry
+    s._set_arrays(bars)
+    s.prev_ts, s.prev_close = t30.value - NS_MIN, 103.0
+    s.on_minute(t30.value, 103, 103, 102, 102.5)
+    assert s.position["stop"] == s.position["initial_stop"]
+    s.prev_ts = t45.value - NS_MIN
+    ev = s.on_minute(t45.value, 102, 102, 101, 101.5)
+    assert [e["type"] for e in ev] == ["trail"] and s.position["stop"] == pytest.approx(103.0)
+
+
+def test_make_bars_gap_segments_follow_the_timeframe():
+    from strategy.ob_mitigation_1h import make_bars
+    idx = pd.DatetimeIndex([T0 + pd.Timedelta(minutes=m) for m in (5, 10, 15, 25, 30)])
+    raw = pd.DataFrame({"open": 1.0, "high": 2.0, "low": 0.5, "close": 1.5, "volume": 1.0}, index=idx)
+    assert make_bars(raw, 5)["segment"].tolist() == [0, 0, 0, 1, 1]
