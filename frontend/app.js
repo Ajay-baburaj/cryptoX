@@ -16,7 +16,7 @@ const RANGES = {
   '1h': { resolution: '1h', seconds: 3600, count: 120 },
   '4h': { resolution: '4h', seconds: 14400, count: 120 },
 };
-const TIMEFRAME_KEY = 'deltadesk.timeframe';
+const TIMEFRAME_KEY = 'cryptox.timeframe';
 const UP = '#46d39a';
 const DOWN = '#f16f82';
 
@@ -49,7 +49,7 @@ candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.22
 const volumeSeries = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '', lastValueVisible: false, priceLineVisible: false });
 volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
 
-const SMC_SETTINGS_KEY = 'deltadesk.smc.v1';
+const SMC_SETTINGS_KEY = 'cryptox.smc.v1';
 let smcOptions = SmartMoneyConcepts.options();
 try {
   smcOptions = SmartMoneyConcepts.options(JSON.parse(localStorage.getItem(SMC_SETTINGS_KEY) || '{}'));

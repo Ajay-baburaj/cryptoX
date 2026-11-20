@@ -9,11 +9,11 @@ self.addEventListener('push', (event) => {
     const raw = event.data ? event.data.json() : {};
     payload = raw.data || raw.notification || raw; // FCM wraps custom data under `data`
   } catch {
-    payload = { title: 'Delta Desk', body: event.data ? event.data.text() : '' };
+    payload = { title: 'CryptoX', body: event.data ? event.data.text() : '' };
   }
-  event.waitUntil(self.registration.showNotification(payload.title || 'Delta Desk', {
+  event.waitUntil(self.registration.showNotification(payload.title || 'CryptoX', {
     body: payload.body || '',
-    tag: payload.tag || 'deltadesk',
+    tag: payload.tag || 'cryptox',
     renotify: true,
     data: { url: payload.url || '/' },
   }));

@@ -5,7 +5,7 @@ import { getMessaging, getToken, deleteToken, onMessage } from 'https://www.gsta
 
 const toggle = document.querySelector('#push-toggle');
 const testButton = document.querySelector('#push-test');
-const KEY = 'deltadesk.push.token';
+const KEY = 'cryptox.push.token';
 const label = (text) => { toggle.querySelector('.lbl').textContent = text; };
 const say = (text) => (typeof showToast === 'function' ? showToast(text) : console.log(text));
 
@@ -80,7 +80,7 @@ async function init() {
   // Page open and focused: FCM hands the message to the page instead of the service worker.
   onMessage(messaging, (payload) => {
     const d = payload.data || {};
-    say(`${d.title || 'Delta Desk'} — ${d.body || ''}`);
+    say(`${d.title || 'CryptoX'} — ${d.body || ''}`);
   });
 
   if (enabled()) await subscribe().catch(() => localStorage.removeItem(KEY)); // refresh a rotated token
