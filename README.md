@@ -108,6 +108,8 @@ Every strategy here was tested with 0.14% round-trip costs and an out-of-sample 
 
 The paper bots exist for forward observation, not because they are validated.
 
+The [BTCUSD multi-timeframe lab](docs/BTC_AGENTS.md) provides a Python agent pipeline, backtest and walk-forward reports, and free headline and positioning collectors. Its entry point is `python -m btc_agents`.
+
 ## Licences and attribution
 
 The Smart Money Concepts indicator (`frontend/indicators/`) and the order-block code derived from it (`src/strategy/luxalgo_internal_ob.py`) are adapted from LuxAlgo's Pine script under **CC BY-NC-SA 4.0**: non-commercial, with attribution and share-alike terms.

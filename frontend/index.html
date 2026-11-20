@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0b0e13" />
     <title>Delta Desk · Crypto Bot</title>
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/btc-signal.css" />
     <link rel="stylesheet" href="/chart.css" />
     <link rel="stylesheet" href="/ob1h.css" />
     <link rel="stylesheet" href="/strategies.css" />
@@ -49,6 +50,8 @@
               <label class="indicator-toggle"><input type="checkbox" id="smc-enabled" checked> <span>Smart Money Concepts <small>LuxAlgo</small></span></label>
               <span id="smc-status" role="status">Waiting for candles…</span>
               <button class="button button-muted" id="smc-settings-toggle" aria-expanded="false" aria-controls="smc-settings">Indicator settings</button>
+              <label class="indicator-toggle"><input type="checkbox" id="trade-markers-enabled" checked> <span>Trade markers <small>paper strategies</small></span></label>
+              <span id="trade-markers-status" role="status">Loading trades…</span>
             </div>
             <form id="smc-settings" class="smc-settings" hidden>
               <fieldset><legend>Structure</legend>
@@ -95,6 +98,11 @@
             <div class="chart-wrap tv-wrap"><div id="tv-chart" class="tv-chart" aria-label="Live BTCUSDT candlestick chart"></div><div class="ohlc-legend" id="ohlc-legend"></div></div>
             <div class="chart-legend"><span><i class="legend-bull"></i>Bullish</span><span><i class="legend-bear"></i>Bearish</span><span class="chart-note" id="chart-note">Connecting to Binance BTCUSDT feed…</span></div>
             <div class="indicator-credit">Smart Money Concepts © LuxAlgo · JavaScript adaptation · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0</a> · <a href="/indicators/luxalgo-smc.pine" download>Original Pine source</a></div>
+          </section>
+          <section class="panel" id="btc-analysis">
+            <header class="agent-heading"><div><span class="agent-source">Delta Exchange · BTCUSD perpetual</span><h2>Agent analysis</h2></div><span id="btc-clock" aria-live="polite"></span></header>
+            <p id="btc-signal-status" role="status">Loading market readings…</p>
+            <div id="btc-signal-market"></div>
           </section>
           <section class="panel ob1h-block" id="manual-trading" aria-label="Manual paper trading">
             <div class="panel-heading"><div><h2>Manual paper trading · BTCUSDT</h2><p>Independent 10,000 USDT account · several positions can be open at once</p></div><span class="live-tag">PAPER ONLY</span></div>
@@ -146,6 +154,7 @@
     <script src="/indicators/smc.js"></script>
     <script src="/app.js"></script>
     <script src="/ob1h.js"></script>
+    <script src="/btc-signal.js"></script>
     <script src="/nav.js"></script>
     <script src="/positions.js"></script>
     <script src="/strategies.js"></script>
