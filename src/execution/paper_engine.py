@@ -183,7 +183,10 @@ class PaperEngine:
     def trade_records(self) -> list[dict]:
         """Closed entries/exits in the shape the dashboard chart plots as buy/sell markers."""
         closed = self.closed_trades()
-        identity = {"strategy_id": "ob_rejection", "strategy_name": "OB rejection 1h/4h", "symbol": self.symbol}
+        # Zones come from 1h/4h order blocks, but entries trigger on the 15m rejection candle
+        # (StrategyConfig.entry_minutes) - tag "15m" so the chart only shows these on that chart.
+        identity = {"strategy_id": "ob_rejection", "strategy_name": "OB rejection 1h/4h",
+                    "symbol": self.symbol, "timeframe": "15m"}
         return [{**identity, "side": row["side"], "entry": float(row["entry"]),
                  "entry_time": row["entry_time"].isoformat(), "exit": float(row["exit"]),
                  "exit_time": row["exit_time"].isoformat(), "pnl_pct": round(float(row["ret_net"]) * 100, 3)}

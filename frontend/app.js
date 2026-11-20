@@ -236,7 +236,7 @@ async function loadCandles(resetView = false) {
 // against Binance BTCUSDT spot for a single shared timeline; treat marker price as approximate.
 const tradeMarkersToggle = document.querySelector('#trade-markers-enabled');
 const tradeMarkersStatus = document.querySelector('#trade-markers-status');
-let tradeMarkers = [];
+let allTrades = [];
 
 function isoToChartTime(iso) {
   return Math.floor(new Date(iso).getTime() / 1000) + IST_OFFSET;
@@ -261,17 +261,21 @@ function tradeToMarkers(t) {
   return markers;
 }
 
+// Each strategy trades one fixed timeframe (ob1h/ob15m/ob5m/OB-rejection); only its own chart
+// shows its markers, so switching timeframe tabs doesn't bury the chart in unrelated trades.
+// Manual trades carry no timeframe (discretionary, not tied to one) and show on every chart.
 function applyTradeMarkers() {
-  candleSeries.setMarkers(tradeMarkersToggle.checked ? tradeMarkers : []);
+  const relevant = allTrades.filter((t) => !t.timeframe || t.timeframe === range.resolution);
+  const markers = relevant.flatMap(tradeToMarkers).sort((a, b) => a.time - b.time);
+  candleSeries.setMarkers(tradeMarkersToggle.checked ? markers : []);
+  tradeMarkersStatus.textContent = `${relevant.length} ${range.resolution} trade${relevant.length === 1 ? '' : 's'} marked`;
 }
 
 async function loadTradeMarkers() {
   try {
     const response = await window.cryptoApiFetch('/api/trades?limit=500');
     if (!response.ok) throw new Error(`status ${response.status}`);
-    const { trades } = await response.json();
-    tradeMarkers = trades.flatMap(tradeToMarkers).sort((a, b) => a.time - b.time);
-    tradeMarkersStatus.textContent = `${trades.length} trade${trades.length === 1 ? '' : 's'} marked`;
+    ({ trades: allTrades } = await response.json());
     applyTradeMarkers();
   } catch (error) {
     tradeMarkersStatus.textContent = 'Trade markers unavailable';
@@ -356,6 +360,7 @@ function selectRange(name) {
   document.querySelectorAll('.range-tabs button').forEach((button) => button.classList.toggle('selected', button.dataset.range === name));
   loadCandles(true);
   connectSocket();
+  applyTradeMarkers();
 }
 
 function showToast(message) {
