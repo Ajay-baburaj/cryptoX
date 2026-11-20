@@ -231,6 +231,56 @@ async function loadCandles(resetView = false) {
   }
 }
 
+// Buy/sell markers for every paper strategy's trades (ob1h/ob15m/ob5m, manual, OB-rejection).
+// Prices and timing come from each strategy's own venue (mostly Delta BTCUSD), plotted here
+// against Binance BTCUSDT spot for a single shared timeline; treat marker price as approximate.
+const tradeMarkersToggle = document.querySelector('#trade-markers-enabled');
+const tradeMarkersStatus = document.querySelector('#trade-markers-status');
+let tradeMarkers = [];
+
+function isoToChartTime(iso) {
+  return Math.floor(new Date(iso).getTime() / 1000) + IST_OFFSET;
+}
+
+function tradeToMarkers(t) {
+  const long = t.side === 'long';
+  const label = t.strategy_name || t.strategy_id || 'strategy';
+  const markers = [{
+    time: isoToChartTime(t.entry_time), position: long ? 'belowBar' : 'aboveBar',
+    color: long ? UP : DOWN, shape: long ? 'arrowUp' : 'arrowDown',
+    text: `${long ? 'BUY' : 'SELL'} · ${label}`,
+  }];
+  if (t.exit_time) {
+    const pnl = [t.ret_pct, t.pnl_pct, t.unrealized_pct].find(Number.isFinite);
+    markers.push({
+      time: isoToChartTime(t.exit_time), position: long ? 'aboveBar' : 'belowBar',
+      color: Number.isFinite(pnl) ? (pnl >= 0 ? UP : DOWN) : '#7d8696', shape: 'circle',
+      text: `EXIT · ${label}${Number.isFinite(pnl) ? ` ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%` : ''}`,
+    });
+  }
+  return markers;
+}
+
+function applyTradeMarkers() {
+  candleSeries.setMarkers(tradeMarkersToggle.checked ? tradeMarkers : []);
+}
+
+async function loadTradeMarkers() {
+  try {
+    const response = await window.cryptoApiFetch('/api/trades?limit=500');
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    const { trades } = await response.json();
+    tradeMarkers = trades.flatMap(tradeToMarkers).sort((a, b) => a.time - b.time);
+    tradeMarkersStatus.textContent = `${trades.length} trade${trades.length === 1 ? '' : 's'} marked`;
+    applyTradeMarkers();
+  } catch (error) {
+    tradeMarkersStatus.textContent = 'Trade markers unavailable';
+  }
+}
+tradeMarkersToggle.addEventListener('change', applyTradeMarkers);
+loadTradeMarkers();
+window.setInterval(loadTradeMarkers, 30000);
+
 async function loadTicker() {
   try {
     const response = await fetch(`${REST}/api/v3/ticker/24hr?symbol=${SYMBOL}`);

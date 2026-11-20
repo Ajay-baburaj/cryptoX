@@ -10,7 +10,9 @@ install -d -o cryptox -g cryptox /opt/cryptox /opt/cryptox/data/paper /opt/crypt
 if systemctl is-active --quiet cryptox; then systemctl stop cryptox; fi
 tar -xzf /tmp/cryptox.tgz -C /opt/cryptox
 chown -R cryptox:cryptox /opt/cryptox
-sudo -u cryptox python3 -m venv /opt/cryptox/.venv
+# --clear: recreating a venv in place over an existing one leaves ensurepip unable to
+# upgrade pip (observed on Debian's python3.11.2), so always start from an empty venv.
+sudo -u cryptox python3 -m venv --clear /opt/cryptox/.venv
 sudo -u cryptox /opt/cryptox/.venv/bin/python -m pip install --quiet --upgrade 'pip>=26.2' 'setuptools>=84.1.0'
 sudo -u cryptox /opt/cryptox/.venv/bin/pip install --quiet -e /opt/cryptox
 cat > /opt/cryptox/.env <<'ENV'

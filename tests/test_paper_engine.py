@@ -77,6 +77,27 @@ def test_summary_marks_open_position_pnl_into_balance() -> None:
     assert summary["balance"] == 1210.0
 
 
+def test_trade_records_exposes_closed_entries_and_exits_for_chart_markers() -> None:
+    engine = PaperEngine(trade_log_path=Path("/tmp/unused_trades.csv"))
+    engine.minutes = make_minutes("2026-01-01 00:10:00")
+    last_minute = engine.minutes.index[-1]
+    engine.trades = make_trades([
+        {"side": "long", "signal_time": "2025-12-01 00:00:00", "entry_time": "2025-12-01 00:00:00",
+         "exit_time": "2025-12-01 01:00:00", "entry": 100.0, "exit": 110.0, "stop": 95.0, "target": 110.0,
+         "exit_reason": "target", "risk_%": 5.0, "ret_net": 0.10, "r_net": 2.0},
+        {"side": "long", "signal_time": "2026-01-01 00:00:00", "entry_time": "2026-01-01 00:01:00",
+         "exit_time": last_minute, "entry": 100.0, "exit": 100.0, "stop": 95.0, "target": 120.0,
+         "exit_reason": "data_gap", "risk_%": 5.0, "ret_net": 0.0, "r_net": 0.0},
+    ])
+    records = engine.trade_records()
+    assert len(records) == 1  # the still-open trade is excluded, matching closed_trades()
+    record = records[0]
+    assert record["side"] == "long" and record["entry"] == 100.0 and record["exit"] == 110.0
+    assert record["entry_time"] == "2025-12-01T00:00:00+00:00"
+    assert record["pnl_pct"] == 10.0
+    assert record["strategy_name"]
+
+
 def test_trade_log_round_trips_and_deduplicates_by_signal_time(tmp_path) -> None:
     log_path = tmp_path / "trades.csv"
     engine = PaperEngine(trade_log_path=log_path)

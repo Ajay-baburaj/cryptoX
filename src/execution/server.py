@@ -45,6 +45,15 @@ def ob_engines(app) -> dict[str, Ob1hEngine]:
     return {"1h": app["ob1h"], **app["ob_extra"]}
 
 
+async def handle_btc_signal(request: web.Request) -> web.Response:
+    path = ROOT / "data/btc_agents/latest.json"
+    try:
+        snapshot = json.loads(path.read_text())
+    except (FileNotFoundError, ValueError):
+        raise web.HTTPServiceUnavailable(text="Awaiting first BTCUSD analysis")
+    return web.json_response(snapshot, headers={"Cache-Control": "no-store"})
+
+
 async def handle_summary(request: web.Request) -> web.Response:
     engine: PaperEngine = request.app["engine"]
     return web.json_response(engine.summary())
@@ -121,6 +130,7 @@ async def handle_trades(request: web.Request) -> web.Response:
     except ValueError:
         raise web.HTTPBadRequest(text='Invalid limit')
     trades = [t for s in strategy_snapshots(request.app) for t in s['trades']]
+    trades += request.app["engine"].trade_records()
     trades.sort(key=lambda t: t['exit_time'], reverse=True)
     return web.json_response({'trades': trades[:limit]}, dumps=lambda o: json.dumps(o, default=float))
 
@@ -163,6 +173,7 @@ def build_app(engine: PaperEngine | None = None, ob1h: Ob1hEngine | None = None,
         engine.on_event = (lambda e: lambda event: notifier.emit(
             {**event, 'strategy_id': e.strategy_id, 'strategy_name': e.strategy_name, 'symbol': e.cfg.symbol}))(engine)
     add_push_routes(app, auth, notifier)
+    app.router.add_get("/api/btc-signal", handle_btc_signal)
     app.router.add_get("/api/summary", handle_summary)
     app.router.add_get("/api/positions", handle_positions)
     app.router.add_get("/api/trades", handle_trades)

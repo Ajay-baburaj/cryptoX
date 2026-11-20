@@ -26,6 +26,7 @@
 .indicator-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:#d5dce7;cursor:pointer}.indicator-toggle small{color:#8c97aa;margin-left:5px;font-size:10px}
 .indicator-toolbar input,.smc-settings input[type=checkbox]{accent-color:#9c83ff}
 #smc-status{font-size:10px;color:#8c97aa;flex:1}.indicator-toolbar .button{height:28px;font-size:10px}
+#trade-markers-status{font-size:10px;color:#8c97aa}
 .smc-settings[hidden]{display:none}.smc-settings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:12px 0;padding:12px;background:#0e1219;border:1px solid #29313f;border-radius:6px}
 .smc-settings fieldset{min-width:0;border:0;padding:0;margin:0}.smc-settings legend{font-size:11px;font-weight:600;color:#cbbfff;margin-bottom:10px}
 .smc-settings label{display:flex;align-items:center;gap:6px;justify-content:space-between;font-size:10px;color:#b4bfcd;margin-bottom:9px}.smc-settings label:has(input[type=checkbox]){justify-content:flex-start}

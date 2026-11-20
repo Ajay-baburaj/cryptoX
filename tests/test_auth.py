@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pandas as pd
 from aiohttp.test_utils import TestClient, TestServer
 
 from execution.auth import AuthConfig, COOKIE, load_secret, make_session, read_session, safe_next, sign_in_allowed
@@ -293,8 +294,16 @@ def test_strategy_catalog_and_trade_ownership_labels(tmp_path):
         catalog=await (await client.get('/api/strategies')).json()
         assert {s['strategy_id'] for s in catalog['strategies']}=={'ob1h_mitigation','ob15m_mitigation','ob5m_mitigation','manual_paper'}
         manual.close(position['id'])
+        engine=app['engine']
+        engine.minutes=pd.DataFrame({'open':100.,'high':101.,'low':99.,'close':100.,'volume':1.},
+                                     index=pd.date_range('2026-01-01',periods=5,freq='min',tz='UTC'))
+        engine.trades=pd.DataFrame([{'side':'long','signal_time':pd.Timestamp('2026-01-01',tz='UTC'),
+            'entry_time':pd.Timestamp('2026-01-01',tz='UTC'),'exit_time':pd.Timestamp('2026-01-01 00:03',tz='UTC'),
+            'entry':100.,'exit':105.,'stop':95.,'target':110.,'exit_reason':'target','risk_%':5.,
+            'ret_net':0.05,'r_net':1.}])
         trades=await (await client.get('/api/trades')).json()
-        assert trades['trades'][0]['strategy_name']=='Manual paper trading'
+        names={t['strategy_name'] for t in trades['trades']}
+        assert 'Manual paper trading' in names and 'OB rejection 1h/4h' in names
         assert (await client.get('/api/trades?limit=invalid')).status==400
     run_app(tmp_path,scenario)
 
