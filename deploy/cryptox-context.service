@@ -1,0 +1,14 @@
+[Unit]
+Description=CryptoX BTCUSD news and positioning collectors
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=cryptox
+Group=cryptox
+WorkingDirectory=/opt/cryptox
+Environment=PYTHONPATH=/opt/cryptox/src
+ExecStart=-/opt/cryptox/.venv/bin/python -m btc_agents derivatives
+ExecStart=-/opt/cryptox/.venv/bin/python -m btc_agents news
+NoNewPrivileges=true
+TimeoutStartSec=240

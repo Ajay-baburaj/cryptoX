@@ -1,0 +1,13 @@
+[Unit]
+Description=CryptoX BTCUSD five-minute market analysis
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=cryptox
+Group=cryptox
+WorkingDirectory=/opt/cryptox
+Environment=PYTHONPATH=/opt/cryptox/src
+ExecStart=/bin/sh /opt/cryptox/deploy/btc-analysis.sh
+NoNewPrivileges=true
+TimeoutStartSec=240

@@ -1,0 +1,7 @@
+[Unit]
+Description=Refresh CryptoX analysis after each minute close
+[Timer]
+OnCalendar=*-*-* *:*:08
+Persistent=true
+[Install]
+WantedBy=timers.target
